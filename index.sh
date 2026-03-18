@@ -43,23 +43,58 @@ check_required_commands() {
 # yt-dlp update
 # ----------------------
 update_yt_dlp() {
-    local installed latest
+    local installed latest ni li
+    normalize() {
+        echo "$1" | tr -d ' \t\r\n' | awk -F. '{out=$1+0; for(i=2;i<=NF;i++){out=out"."($i+0)}; print out}'
+    }
+
+    ver_cmp() {
+        local a=(${1//./ }) b=(${2//./ })
+        local i max
+        (( ${#a[@]} > ${#b[@]} )) && max=${#a[@]} || max=${#b[@]}
+        for ((i=0;i<max;i++)); do
+            local ai=${a[i]:-0} bi=${b[i]:-0}
+            if (( ai > bi )); then return 1; fi
+            if (( ai < bi )); then return 2; fi
+        done
+        return 0
+    }
+
     if command_exists yt-dlp; then
-        installed=$(yt-dlp --version | tr -d ' \t\r\n')
-        latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])" | tr -d ' \t\r\n')
-        if [[ "$installed" != "$latest" ]]; then
-            log "Updating yt-dlp $installed -> $latest"
+        installed=$(yt-dlp --version 2>/dev/null || echo "")
+        installed=$(normalize "$installed")
+        latest=$(python3 -c "import json,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])" 2>/dev/null || echo "")
+        latest=$(normalize "$latest")
+
+        if [[ -z "$installed" || -z "$latest" ]]; then
+            warn "Could not determine versions (installed='$installed', latest='$latest'); attempting upgrade"
             if python3 -m pip install --user --upgrade yt-dlp >/dev/null 2>&1; then
-                log "yt-dlp updated to $latest"
+                log "yt-dlp upgraded (version unknown)"
             else
-                err "Failed to update yt-dlp"
+                err "Failed to upgrade yt-dlp"
                 exit 1
             fi
+            return
         fi
+
+        ver_cmp "$installed" "$latest"
+        case $? in
+            0)  ;;
+            1)  log "Installed yt-dlp ($installed) is newer than PyPI ($latest); skipping update" ;;
+            2)  log "Updating yt-dlp $installed -> $latest"
+                if python3 -m pip install --user --upgrade yt-dlp >/dev/null 2>&1; then
+                    log "yt-dlp updated to $latest"
+                else
+                    err "Failed to update yt-dlp"
+                    exit 1
+                fi
+                ;;
+        esac
     else
         log "yt-dlp not found, installing latest version..."
         if python3 -m pip install --user yt-dlp >/dev/null 2>&1; then
-            latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])" || true)
+            latest=$(python3 -c "import json,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])" 2>/dev/null || true)
+            latest=$(normalize "$latest")
             log "yt-dlp installed${latest:+ ($latest)}"
         else
             err "Failed to install yt-dlp"
