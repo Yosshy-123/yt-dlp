@@ -88,8 +88,6 @@ download_video() {
     --merge-output-format mp4 \
     -o "${VIDEO_ID}.%(ext)s" \
     --limit-rate "$RATE_LIMIT" \
-    --external-downloader ffmpeg \
-    --downloader-args "ffmpeg:-hwaccel cuda -c:v h264_nvenc" \
     "$url"
 }
 
@@ -99,11 +97,11 @@ finalize_output() {
   fi
 
   local found
-  found=$(ls "${VIDEO_ID}."* 2>/dev/null | head -n1 || true)
+  found=$(ls "${VIDEO_ID}."* 2>/dev/null | grep -E '\.(mp4|mkv|webm|m4a|opus|mp3)$' | head -n1 || true)
 
   if [[ -n "$found" ]]; then
     log "Remuxing to mp4..."
-    ffmpeg -y -loglevel error -hwaccel cuda -i "$found" -c copy "${VIDEO_ID}.mp4"
+    ffmpeg -y -loglevel error -i "$found" -c copy "${VIDEO_ID}.mp4"
   else
     err "No output file found"
     exit 1
