@@ -46,7 +46,7 @@ update_yt_dlp() {
     local installed latest
     if command_exists yt-dlp; then
         installed=$(yt-dlp --version)
-        latest=$(curl -fsSL "$YT_DLP_PYPI_JSON" | jq -r '.info.version')
+        latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])")
         if [[ "$installed" != "$latest" ]]; then
             log "Updating yt-dlp $installed -> $latest"
             pip3 install --user --upgrade yt-dlp
