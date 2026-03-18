@@ -146,7 +146,7 @@ ensure_python_and_pip
 ensure_ffmpeg
 ensure_yt_dlp
 
-yt-dlp -q --no-progress -f "bv*+ba/b" --merge-output-format mp4 -o "${VIDEO_ID}.%(ext)s" "$URL"
+yt-dlp -q --no-progress -f "bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]" --merge-output-format mp4 -o "${VIDEO_ID}.%(ext)s" "$URL"
 
 if [ -f "${VIDEO_ID}.mp4" ]; then
   :
