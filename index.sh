@@ -45,22 +45,20 @@ check_required_commands() {
 update_yt_dlp() {
     local installed latest
     if command_exists yt-dlp; then
-        installed=$(yt-dlp --version)
-        latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])")
+        installed=$(yt-dlp --version | tr -d ' \t\r\n')
+        latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])" | tr -d ' \t\r\n')
         if [[ "$installed" != "$latest" ]]; then
             log "Updating yt-dlp $installed -> $latest"
-            if pip3 install --user --upgrade yt-dlp >/dev/null 2>&1; then
+            if python3 -m pip install --user --upgrade yt-dlp >/dev/null 2>&1; then
                 log "yt-dlp updated to $latest"
             else
                 err "Failed to update yt-dlp"
                 exit 1
             fi
-        else
-            :
         fi
     else
         log "yt-dlp not found, installing latest version..."
-        if pip3 install --user yt-dlp >/dev/null 2>&1; then
+        if python3 -m pip install --user yt-dlp >/dev/null 2>&1; then
             latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])" || true)
             log "yt-dlp installed${latest:+ ($latest)}"
         else
@@ -69,7 +67,6 @@ update_yt_dlp() {
         fi
     fi
 }
-
 
 # ----------------------
 # Video download & post-process
