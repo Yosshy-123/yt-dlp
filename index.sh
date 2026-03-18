@@ -49,15 +49,27 @@ update_yt_dlp() {
         latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])")
         if [[ "$installed" != "$latest" ]]; then
             log "Updating yt-dlp $installed -> $latest"
-            pip3 install --user --upgrade yt-dlp
+            if pip3 install --user --upgrade yt-dlp >/dev/null 2>&1; then
+                log "yt-dlp updated to $latest"
+            else
+                err "Failed to update yt-dlp"
+                exit 1
+            fi
         else
-            log "yt-dlp is up-to-date ($installed)"
+            :
         fi
     else
         log "yt-dlp not found, installing latest version..."
-        pip3 install --user yt-dlp
+        if pip3 install --user yt-dlp >/dev/null 2>&1; then
+            latest=$(python3 -c "import json,sys,urllib.request as u; print(json.load(u.urlopen('$YT_DLP_PYPI_JSON'))['info']['version'])" || true)
+            log "yt-dlp installed${latest:+ ($latest)}"
+        else
+            err "Failed to install yt-dlp"
+            exit 1
+        fi
     fi
 }
+
 
 # ----------------------
 # Video download & post-process
